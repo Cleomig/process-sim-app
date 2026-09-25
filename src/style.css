@@ -187,7 +187,7 @@
 
 /* ── Mobile drawer scrim ───────────────────────────────────── */
 .scrim {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(2, 6, 23, 0.7);
   backdrop-filter: blur(2px);
@@ -236,6 +236,8 @@
     z-index: 50;
     transition: transform 0.25s ease;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    /* Opaque on mobile: /95 and /90 let the panel underneath bleed through. */
+    background-color: #0f172a;
   }
   aside.side-params    { left: 0;  transform: translateX(-102%); }
   aside.side-telemetry { right: 0; transform: translateX(102%); }

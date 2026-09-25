@@ -105,16 +105,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const panel  = document.querySelector('.side-params');
   const tele   = document.querySelector('.side-telemetry');
 
-  const setDrawers = open => {
-    panel?.classList.toggle('open', open);
-    tele?.classList.toggle('open', open);
-    if (scrim) scrim.hidden = !open;
-    btnMobileMenu?.setAttribute('aria-expanded', String(open));
-    btnMobileTelemetry?.setAttribute('aria-expanded', String(open));
+  // One drawer at a time — on a 360px viewport two 86vw panels overlap entirely.
+  const setDrawers = which => {
+    const p = which === 'params';
+    const t = which === 'tele';
+    panel?.classList.toggle('open', p);
+    tele?.classList.toggle('open', t);
+    if (scrim) scrim.hidden = !(p || t);
+    btnMobileMenu?.setAttribute('aria-expanded', String(p));
+    btnMobileTelemetry?.setAttribute('aria-expanded', String(t));
+  };
+  const toggleDrawer = which => {
+    const el = which === 'params' ? panel : tele;
+    setDrawers(el?.classList.contains('open') ? false : which);
   };
 
-  btnMobileMenu?.addEventListener('click', () => setDrawers(!panel?.classList.contains('open')));
-  btnMobileTelemetry?.addEventListener('click', () => setDrawers(!tele?.classList.contains('open')));
+  btnMobileMenu?.addEventListener('click', () => toggleDrawer('params'));
+  btnMobileTelemetry?.addEventListener('click', () => toggleDrawer('tele'));
   scrim?.addEventListener('click', () => setDrawers(false));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawers(false); });
   // A drawer left open would cover the layout after a rotate/resize to desktop.
