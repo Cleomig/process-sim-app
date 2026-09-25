@@ -18,20 +18,6 @@
   </script>
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-
-  <!-- Import map: lets the unbundled ES modules resolve `chart.js/auto`.
-       GitHub Pages is configured to publish this source tree directly
-       (build_type=legacy, path=/) rather than dist/, so there is no bundler
-       to turn the bare specifier into a URL. Remove once Pages is switched
-       to "GitHub Actions" and serves the Vite build. Version is pinned to
-       match the chart.js entry in package.json. -->
-  <script type="importmap">
-    {
-      "imports": {
-        "chart.js/auto": "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/auto/auto.js"
-      }
-    }
-  </script>
   <link rel="stylesheet" href="./src/style.css">
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
