@@ -3,6 +3,11 @@
    Vanilla CSS for all non-Tailwind custom components
    ============================================================ */
 
+/* App shell height. 100dvh, not 100vh: on mobile browsers 100vh includes
+   the collapsing URL bar, which pushes the quick-state-bar off-screen. */
+#app { height: 100dvh; }
+@supports not (height: 100dvh) { #app { height: 100vh; } }
+
 /* ── Scrollbars ────────────────────────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15,23,42,0.6); }
@@ -180,63 +185,133 @@
 .residual-warn { color: #f59e0b; }
 .residual-bad  { color: #ef4444; font-weight: 700; }
 
-/* ── Mobile Responsive ─────────────────────────────────────── */
-@media (max-width: 768px) {
-  /* Header controls */
-  header .flex.items-center.gap-3 { flex-wrap: wrap; gap: 0.5rem; }
-  header .text-xs { font-size: 10px; }
-  
-  /* Sidebar - hide by default on mobile, toggle button */
-  aside.w-72 {
-    position: fixed;
-    left: 0;
-    top: 3.5rem;
-    bottom: 0;
-    width: 85%;
-    max-width: 320px;
-    z-index: 50;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  aside.w-72.open { transform: translateX(0); }
-  
-  /* Main content adjustments */
-  main.flex-1 { min-width: 0; }
-  
-  /* KPI bar - stack vertically */
-  .grid.grid-cols-2.lg\:grid-cols-4 {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  /* Navigation tabs - scrollable */
-  nav.flex.gap-0\.5 { overflow-x: auto; padding-bottom: 0.25rem; }
-  .nav-tab { padding: 0.4rem 0.6rem; font-size: 0.7rem; }
-  
-  /* PFD cards - scale down */
-  .pfd-card { padding: 4px 6px; }
-  .pfd-card-title { font-size: 8px; }
-  .pfd-card div { font-size: 9px !important; }
-  
-  /* Telemetry sidebar - collapsible */
-  aside.w-56 {
-    display: none;
-  }
-  aside.w-56.mobile-show { display: block; position: fixed; right: 0; top: 3.5rem; bottom: 0; width: 75%; max-width: 240px; z-index: 50; }
-  
-  /* Hide PFD SVG on very small screens */
-  @media (max-width: 480px) {
-    .kpi-card { padding: 0.5rem; }
-    .kpi-card .text-xl { font-size: 1rem; }
-  }
+/* ── Mobile drawer scrim ───────────────────────────────────── */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(2px);
+  z-index: 45;
 }
+.scrim[hidden] { display: none; }
 
-/* Mobile toggle buttons */
-.mobile-menu-btn { display: none; }
+/* ── Mobile toggle buttons ─────────────────────────────────── */
+.mobile-menu-btn,
 .mobile-telemetry-btn { display: none; }
 
+/* ============================================================
+   Mobile / tablet — max-width 768px
+   Desktop layout is untouched; only the phone layout changes.
+   ============================================================ */
 @media (max-width: 768px) {
-  .mobile-menu-btn,
-  .mobile-telemetry-btn {
-    display: flex;
+  /* Kill the 300ms tap delay, stop text selection on tap */
+  body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+  /* ── Header: 2 rows, controls scroll horizontally ──
+     At 375px the control bar is ~620px wide, so it cannot fit
+     next to the logo. Give it its own scrollable row instead. */
+  header.h-14 { height: auto; min-height: 3.5rem; flex-wrap: wrap; row-gap: 0.5rem; padding-bottom: 0.5rem; }
+  header > .flex.items-center.gap-3 { min-width: 0; }
+  .header-controls {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
+  .header-controls::-webkit-scrollbar { display: none; }
+  /* Strip the two 1px dividers on mobile — pure noise when wrapping */
+  header .h-5.w-px { display: none; }
+
+  /* ── Drawers: off-canvas with scrim ──
+     `aside.` prefix beats Tailwind's .w-72/.w-56 (same specificity,
+     and the CDN injects its stylesheet at an unpredictable order). */
+  aside.side-params,
+  aside.side-telemetry {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: min(86vw, 340px);
+    max-width: none;
+    z-index: 50;
+    transition: transform 0.25s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+  aside.side-params    { left: 0;  transform: translateX(-102%); }
+  aside.side-telemetry { right: 0; transform: translateX(102%); }
+  aside.side-params.open,
+  aside.side-telemetry.open { transform: translateX(0); }
+
+  .mobile-menu-btn,
+  .mobile-telemetry-btn { display: flex; }
+
+  /* ── Touch targets: 44px minimum per WCAG 2.1 target size ──
+     py-1 buttons are ~24px tall on desktop, unusable by thumb. */
+  header button,
+  .nav-tab,
+  .side-params button,
+  .side-params select,
+  .side-params input {
+    min-height: 44px;
+  }
+  .side-params .inp-num { width: 100%; min-width: 0; text-align: left; font-size: 0.875rem; }
+  .side-params .flex.items-center.justify-between > label { flex: 1 1 auto; padding-right: 0.5rem; }
+
+  /* ── PFD: absolute px positioning is unusable below 768px.
+     Drop the cards into normal flow under the diagram, 2-up. ── */
+  #view-pfd > div {
+    overflow-y: auto;
+    overflow-x: hidden;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex-flow: row wrap;
+    align-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    min-height: 0;
+  }
+  #pfd-svg { flex: 0 0 100%; height: auto; max-height: 45vh; margin-bottom: 0.25rem; }
+  .pfd-card {
+    position: static;
+    flex: 1 1 calc(50% - 0.25rem);
+    width: auto;
+    min-width: 0;
+    padding: 0.5rem;
+  }
+  .pfd-card:hover { transform: none; }
+  .pfd-card-title { font-size: 9px; }
+  .pfd-card div { font-size: 10px !important; }
+
+  /* ── Trends: 1 column, fixed row height.
+     `1fr` rows inside a scroller collapse to 0 — use minmax. ── */
+  .trends-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-rows: minmax(200px, auto);
+    height: auto;
+    overflow-y: auto;
+  }
+
+  /* ── KPI bar ── */
+  .kpi-card { padding: 0.5rem; }
+  .kpi-card .text-xl { font-size: 1.125rem; }
+
+  /* ── Granulometría / Alarmas / Casos tables: allow x-scroll
+     instead of forcing the whole page wide ── */
+  .tab-view table { min-width: 520px; }
+  .tab-view .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* ── Quick state bar: allow wrapping on narrow screens ── */
+  #quick-state-bar { height: auto; min-height: 2rem; padding: 0.25rem 0.75rem; line-height: 1.3; }
+}
+
+/* ── Narrow phones: single-column PFD cards ─────────────────── */
+@media (max-width: 420px) {
+  .pfd-card { flex: 1 1 100%; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .flow-line, .mill-dots, .qsb-alarm, .alarm-active-pill { animation: none; }
+  .side-params, .side-telemetry { transition: none; }
 }

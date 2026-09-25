@@ -100,14 +100,25 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAlarmLog();
   });
 
-  // Mobile toggles
-  btnMobileMenu?.addEventListener('click', () => {
-    document.querySelector('aside.w-72')?.classList.toggle('open');
-  });
+  // ── Mobile drawer toggles ──
+  const scrim  = document.getElementById('scrim');
+  const panel  = document.querySelector('.side-params');
+  const tele   = document.querySelector('.side-telemetry');
 
-  btnMobileTelemetry?.addEventListener('click', () => {
-    document.querySelector('aside.w-56')?.classList.toggle('mobile-show');
-  });
+  const setDrawers = open => {
+    panel?.classList.toggle('open', open);
+    tele?.classList.toggle('open', open);
+    if (scrim) scrim.hidden = !open;
+    btnMobileMenu?.setAttribute('aria-expanded', String(open));
+    btnMobileTelemetry?.setAttribute('aria-expanded', String(open));
+  };
+
+  btnMobileMenu?.addEventListener('click', () => setDrawers(!panel?.classList.contains('open')));
+  btnMobileTelemetry?.addEventListener('click', () => setDrawers(!tele?.classList.contains('open')));
+  scrim?.addEventListener('click', () => setDrawers(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawers(false); });
+  // A drawer left open would cover the layout after a rotate/resize to desktop.
+  matchMedia('(min-width: 769px)').addEventListener('change', e => { if (e.matches) setDrawers(false); });
 });
 
 // ── Tab Switching ────────────────────────────────────────────
