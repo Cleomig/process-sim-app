@@ -33,6 +33,8 @@ const btnExportXlsx  = document.getElementById('btn-export-xlsx');
 const simStatusBadge = document.getElementById('sim-status-badge');
 const simTimer       = document.getElementById('sim-timer');
 const simSpeedSelect = document.getElementById('sim-speed');
+const btnMobileMenu  = document.getElementById('btn-mobile-menu');
+const btnMobileTelemetry = document.getElementById('btn-mobile-telemetry');
 
 // ── Initialization ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -96,6 +98,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-clear-alarm-log')?.addEventListener('click', () => {
     alarms.clearLog();
     renderAlarmLog();
+  });
+
+  // Mobile toggles
+  btnMobileMenu?.addEventListener('click', () => {
+    document.querySelector('aside.w-72')?.classList.toggle('open');
+  });
+
+  btnMobileTelemetry?.addEventListener('click', () => {
+    document.querySelector('aside.w-56')?.classList.toggle('mobile-show');
   });
 });
 
