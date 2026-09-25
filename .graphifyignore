@@ -1,0 +1,9 @@
+.agents/
+.config/
+node_modules/
+dist/
+.opencode/
+graphify-out/
+*.lock
+package-lock.json
+skills-lock.json

@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetSim Studio v2.0 — Simulador Industrial de Molienda y Clasificación</title>
+  <meta name="description" content="Simulador dinámico industrial de molienda de bolas y clasificación por hidrociclones: PBM real, curva de Tromp, control PID, balance de agua completo, 8 paneles de tendencias y sistema de alarmas." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'], mono: ['JetBrains Mono','monospace'] } } }
+    }
+  </script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+
+<div id="app" class="flex flex-col h-screen overflow-hidden">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════ -->
+  <header class="h-14 bg-slate-900/95 backdrop-blur border-b border-slate-800/80 px-4 flex items-center justify-between z-30 shrink-0 select-none">
+    <div class="flex items-center gap-3">
+      <!-- Logo -->
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 via-orange-500 to-cyan-500 p-0.5 shadow-lg shadow-amber-500/20">
+        <div class="w-full h-full bg-slate-950 rounded-[7px] flex items-center justify-center font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400 text-sm">M</div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold tracking-tight text-slate-100 text-sm">MetSim Studio
+            <span class="text-cyan-400 font-mono text-xs px-1.5 py-0.5 bg-cyan-400/10 rounded border border-cyan-400/20">v2.0</span>
+          </h1>
+          <span class="text-xs text-slate-400 font-medium hidden md:inline">• Simulador Industrial de Molienda y Clasificación</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="flex items-center gap-3">
+      <!-- Run / Pause / Reset -->
+      <div class="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
+        <button id="btn-run" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-semibold px-3 py-1 rounded text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span>Ejecutar</span>
+        </button>
+        <button id="btn-pause" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-2.5 py-1 rounded text-xs flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <span>Pausa</span>
+        </button>
+        <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-red-400 font-medium px-2.5 py-1 rounded text-xs flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          <span>Detener</span>
+        </button>
+      </div>
+
+      <div class="h-5 w-px bg-slate-800"></div>
+
+      <!-- Status & Timer -->
+      <div class="flex items-center gap-2 font-mono text-xs">
+        <span id="sim-status-badge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium border border-slate-700/60 uppercase tracking-wider text-[10px]">SIN RESOLVER</span>
+        <span class="text-slate-400">Tiempo: <span id="sim-timer" class="text-amber-400 font-bold">0.00 min</span></span>
+      </div>
+
+      <div class="h-5 w-px bg-slate-800"></div>
+
+      <!-- Speed -->
+      <div class="flex items-center gap-1.5 text-xs text-slate-400">
+        <label for="sim-speed" class="hidden md:inline">Velocidad:</label>
+        <select id="sim-speed" class="bg-slate-900 border border-slate-700/80 text-slate-200 text-xs rounded px-2 py-1 font-mono focus:outline-none focus:border-cyan-500">
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="5">5×</option>
+          <option value="10">10×</option>
+          <option value="20" selected>20×</option>
+          <option value="60">60×</option>
+        </select>
+      </div>
+
+      <!-- Export buttons -->
+      <button id="btn-export-csv" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1 rounded border border-slate-700 flex items-center gap-1.5 transition font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span class="hidden sm:inline">CSV</span>
+      </button>
+      <button id="btn-export-xlsx" class="bg-emerald-900/50 hover:bg-emerald-800/60 text-emerald-300 text-xs px-2.5 py-1 rounded border border-emerald-700/50 flex items-center gap-1.5 transition font-medium">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+        <span class="hidden sm:inline">Excel</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ WORKSPACE ═══════════════════════════════════════════ -->
+  <div class="flex flex-1 overflow-hidden relative">
+
+    <!-- ── Left Sidebar: Parameters ──────────────────────────── -->
+    <aside class="w-72 bg-slate-900/95 border-r border-slate-800/80 flex flex-col shrink-0 overflow-y-auto select-none custom-scrollbar z-20">
+      <div class="p-3 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/40 shrink-0">
+        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Parámetros
+        </span>
+        <button id="btn-reset-params" class="text-[10px] text-cyan-400 hover:underline">Restaurar</button>
+      </div>
+
+      <div class="p-3 space-y-3 text-xs">
+
+        <!-- ALIMENTACIÓN -->
+        <details class="group bg-slate-950/50 rounded-lg border border-slate-800/80 overflow-hidden" open>
+          <summary class="flex items-center justify-between p-2.5 cursor-pointer bg-slate-800/30 group-open:bg-slate-800/60 font-semibold text-slate-200">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-3 bg-amber-500 rounded-full"></span>ALIMENTACIÓN</span>
+            <svg class="w-4 h-4 text-slate-400 transform transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="text-slate-400">Tratamiento [t/h]:</label><input type="number" id="inp-treatment" value="100" class="inp-num" min="10" max="1000" step="5"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">F80 [µm]:</label><input type="number" id="inp-f80" value="10000" class="inp-num" min="1000" max="30000" step="500"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Wi Bond [kWh/t]:</label><input type="number" id="inp-wi" value="14" class="inp-num" min="5" max="30" step="0.5"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Densidad mineral [t/m³]:</label><input type="number" id="inp-density" value="2.70" class="inp-num" step="0.05"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Humedad feed [%]:</label><input type="number" id="inp-moisture" value="3" class="inp-num" min="0" max="15"></div>
+          </div>
+        </details>
+
+        <!-- OBJETIVO -->
+        <details class="group bg-slate-950/50 rounded-lg border border-slate-800/80 overflow-hidden" open>
+          <summary class="flex items-center justify-between p-2.5 cursor-pointer bg-slate-800/30 group-open:bg-slate-800/60 font-semibold text-slate-200">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-3 bg-cyan-500 rounded-full"></span>OBJETIVO</span>
+            <svg class="w-4 h-4 text-slate-400 transform transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="text-slate-400">P80 objetivo [µm]:</label><input type="number" id="inp-target-p80" value="150" class="inp-num" min="45" max="500" step="5"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Eficiencia [%]:</label><input type="number" id="inp-efficiency" value="92" class="inp-num" min="50" max="100"></div>
+          </div>
+        </details>
+
+        <!-- MOLINO -->
+        <details class="group bg-slate-950/50 rounded-lg border border-slate-800/80 overflow-hidden" open>
+          <summary class="flex items-center justify-between p-2.5 cursor-pointer bg-slate-800/30 group-open:bg-slate-800/60 font-semibold text-slate-200">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-3 bg-orange-500 rounded-full"></span>MOLINO DE BOLAS</span>
+            <svg class="w-4 h-4 text-slate-400 transform transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="text-slate-400">Volumen útil [m³]:</label><input type="number" id="inp-mill-vol" value="120" class="inp-num"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Inventario [t]:</label><input type="number" id="inp-mill-inv" value="85" class="inp-num"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Potencia [kW]:</label><input type="number" id="inp-mill-power" value="2200" class="inp-num" step="50"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Agua molino [m³/h]:</label><input type="number" id="inp-mill-water" value="60" class="inp-num"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Control agua:</label>
+              <select id="inp-mill-water-mode" class="inp-select">
+                <option value="manual">Manual</option>
+                <option value="auto">Automático (SP %sól)</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">SP sólidos [%w/w]:</label><input type="number" id="inp-mill-sp-solids" value="70" class="inp-num" min="50" max="85"></div>
+          </div>
+        </details>
+
+        <!-- SUMP Y BOMBA -->
+        <details class="group bg-slate-950/50 rounded-lg border border-slate-800/80 overflow-hidden" open>
+          <summary class="flex items-center justify-between p-2.5 cursor-pointer bg-slate-800/30 group-open:bg-slate-800/60 font-semibold text-slate-200">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-3 bg-blue-500 rounded-full"></span>SUMP Y BOMBA</span>
+            <svg class="w-4 h-4 text-slate-400 transform transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="text-slate-400">Volumen sump [m³]:</label><input type="number" id="inp-sump-vol" value="160" class="inp-num"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Agua sump [m³/h]:</label><input type="number" id="inp-sump-water" value="20" class="inp-num"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Control bomba:</label>
+              <select id="inp-pump-mode" class="inp-select">
+                <option value="auto">Auto (Nivel)</option>
+                <option value="manual">Manual (%)</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">SP nivel [%]:</label><input type="number" id="inp-sump-sp" value="55" class="inp-num" min="10" max="90"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Cap. bomba [m³/h]:</label><input type="number" id="inp-pump-cap" value="380" class="inp-num" step="20"></div>
+            <!-- PID Gains -->
+            <div class="pt-1 border-t border-slate-800/50">
+              <span class="text-[10px] text-slate-500 uppercase font-semibold tracking-wide block mb-1.5">Control PID Bomba</span>
+              <div class="flex items-center justify-between"><label class="text-slate-400">Kp:</label><input type="number" id="inp-pid-kp" value="2.0" class="inp-num" step="0.1"></div>
+              <div class="flex items-center justify-between mt-1"><label class="text-slate-400">Ki:</label><input type="number" id="inp-pid-ki" value="0.15" class="inp-num" step="0.01"></div>
+              <div class="flex items-center justify-between mt-1"><label class="text-slate-400">Kd:</label><input type="number" id="inp-pid-kd" value="0.4" class="inp-num" step="0.05"></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- CICLÓN -->
+        <details class="group bg-slate-950/50 rounded-lg border border-slate-800/80 overflow-hidden" open>
+          <summary class="flex items-center justify-between p-2.5 cursor-pointer bg-slate-800/30 group-open:bg-slate-800/60 font-semibold text-slate-200">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-3 bg-emerald-500 rounded-full"></span>HIDROCICLÓN</span>
+            <svg class="w-4 h-4 text-slate-400 transform transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="p-3 space-y-2">
+            <div class="flex items-center justify-between"><label class="text-slate-400">d50c [µm]:</label><input type="number" id="inp-cyc-d50c" value="105" class="inp-num" step="5"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Imperfección:</label><input type="number" id="inp-cyc-imp" value="0.32" class="inp-num" step="0.01"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Bypass [%]:</label><input type="number" id="inp-cyc-bypass" value="12" class="inp-num" min="0" max="40"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Ciclones activos:</label><input type="number" id="inp-cyc-active" value="6" class="inp-num" min="1" max="16"></div>
+            <div class="flex items-center justify-between"><label class="text-slate-400">Diámetro apex [mm]:</label><input type="number" id="inp-cyc-apex" value="100" class="inp-num" step="5"></div>
+          </div>
+        </details>
+
+        <!-- PERTURBACIONES -->
+        <div class="pt-1">
+          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Perturbaciones Rápidas</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-quick-feed" class="bg-slate-800 hover:bg-amber-900/40 hover:border-amber-600/40 text-slate-200 p-2 rounded border border-slate-700 text-center font-medium transition text-[11px]">+20% Feed</button>
+            <button id="btn-quick-wi"   class="bg-slate-800 hover:bg-amber-900/40 hover:border-amber-600/40 text-slate-200 p-2 rounded border border-slate-700 text-center font-medium transition text-[11px]">+20% Wi</button>
+            <button id="btn-quick-pert-sump" class="bg-slate-800 hover:bg-blue-900/40 hover:border-blue-600/40 text-slate-200 p-2 rounded border border-slate-700 text-center font-medium transition text-[11px]">+50% Agua Sump</button>
+            <button id="btn-quick-apex" class="bg-slate-800 hover:bg-emerald-900/40 hover:border-emerald-600/40 text-slate-200 p-2 rounded border border-slate-700 text-center font-medium transition text-[11px]">-10 mm Apex</button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ── Center Main Area ───────────────────────────────────── -->
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-950 overflow-hidden">
+
+      <!-- KPI Bar -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 p-3 bg-slate-900/60 border-b border-slate-800/80 shrink-0">
+        <div class="kpi-card">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Energía Específica</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="kpi-energy" class="text-xl font-bold font-mono text-cyan-400">--</span>
+            <span class="text-xs text-slate-400">kWh/t</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Potencia Requerida</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="kpi-power" class="text-xl font-bold font-mono text-amber-400">--</span>
+            <span class="text-xs text-slate-400">kW</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">P80 Overflow / Producto</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="kpi-p80" class="text-xl font-bold font-mono text-emerald-400">--</span>
+            <span class="text-xs text-slate-400">µm</span>
+          </div>
+          <span id="kpi-p80-mill" class="text-[10px] text-slate-400 block mt-0.5">Descarga molino: -- µm</span>
+        </div>
+        <div class="kpi-card">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Carga Circulante</span>
+          <div class="flex items-baseline gap-1 mt-1">
+            <span id="kpi-circulating" class="text-xl font-bold font-mono text-orange-400">--</span>
+            <span class="text-xs text-slate-400">%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center justify-between px-2 border-b border-slate-800 bg-slate-900/30 shrink-0 select-none overflow-x-auto custom-scrollbar">
+        <nav class="flex gap-0.5">
+          <button data-tab="pfd" class="nav-tab active">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V5l12-2v12M9 17l12-2M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/></svg>
+            Diagrama (PFD)
+          </button>
+          <button data-tab="psd" class="nav-tab">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18"/></svg>
+            Granulometría
+          </button>
+          <button data-tab="trends" class="nav-tab">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            Tendencias (8 Paneles)
+          </button>
+          <button data-tab="alarms" class="nav-tab">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            Alarmas <span id="alarm-tab-badge" class="hidden"></span>
+          </button>
+          <button data-tab="cases" class="nav-tab">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            Casos
+          </button>
+          <button data-tab="math" class="nav-tab">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01"/></svg>
+            Modelo
+          </button>
+        </nav>
+      </div>
+
+      <!-- ── Tab Views ──────────────────────────────────────── -->
+      <div class="flex-1 relative overflow-hidden bg-slate-950">
+
+        <!-- VIEW 1: PFD ──────────────────────────────────────── -->
+        <div id="view-pfd" class="tab-view active w-full h-full p-3 overflow-auto flex-col justify-between">
+          <div class="relative w-full h-full min-h-[500px] bg-slate-900/40 rounded-xl border border-slate-800/80 flex flex-col items-center justify-center overflow-hidden">
+            <svg id="pfd-svg" class="w-full h-full max-w-5xl max-h-[580px]" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <linearGradient id="pulp-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#38bdf8"/>
+                </linearGradient>
+                <linearGradient id="recirc-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#ea580c"/><stop offset="100%" stop-color="#fb923c"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Flow Pipelines -->
+              <path d="M 120 230 L 220 230" class="flow-line pulp-line" />
+              <path d="M 400 250 L 460 250 L 460 280" class="flow-line pulp-line" />
+              <path d="M 520 310 L 580 310" class="flow-line pulp-line" />
+              <path d="M 640 310 L 670 310 L 670 170 L 710 170" class="flow-line pulp-line" />
+              <path d="M 770 150 L 920 150" class="flow-line pulp-line" />
+              <path d="M 740 260 L 740 390 L 240 390 L 240 250 L 260 250" class="flow-line recirc-line" />
+
+              <!-- Arrows -->
+              <polygon points="215,225 225,230 215,235" fill="#38bdf8" />
+              <polygon points="575,305 585,310 575,315" fill="#38bdf8" />
+              <polygon points="915,145 925,150 915,155" fill="#38bdf8" />
+              <polygon points="255,245 260,250 265,245" fill="#fb923c" />
+
+              <!-- Hopper -->
+              <g transform="translate(40, 170)">
+                <polygon points="10,0 70,0 55,60 25,60" fill="#334155" stroke="#64748b" stroke-width="2"/>
+                <rect x="5" y="-10" width="70" height="10" fill="#475569" rx="2"/>
+                <line x1="20" y1="60" x2="20" y2="90" stroke="#64748b" stroke-width="3"/>
+                <line x1="60" y1="60" x2="60" y2="90" stroke="#64748b" stroke-width="3"/>
+              </g>
+
+              <!-- Ball Mill -->
+              <g transform="translate(260, 190)">
+                <rect x="20" y="10" width="120" height="70" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+                <rect x="0" y="30" width="20" height="30" fill="#475569" rx="2"/>
+                <rect x="140" y="30" width="20" height="30" fill="#475569" rx="2"/>
+                <circle cx="50" cy="30" r="3" fill="#64748b" class="mill-dots"/>
+                <circle cx="80" cy="45" r="4" fill="#64748b" class="mill-dots"/>
+                <circle cx="110" cy="30" r="3" fill="#64748b" class="mill-dots"/>
+                <circle cx="65" cy="55" r="3" fill="#64748b" class="mill-dots"/>
+                <circle cx="95" cy="55" r="3" fill="#64748b" class="mill-dots"/>
+                <polygon points="25,80 15,105 35,105" fill="#475569"/>
+                <polygon points="135,80 125,105 145,105" fill="#475569"/>
+              </g>
+
+              <!-- Sump Tank -->
+              <g transform="translate(440, 260)">
+                <rect x="0" y="0" width="80" height="70" rx="4" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+                <rect id="svg-sump-level" x="3" y="25" width="74" height="42" fill="#0284c7" opacity="0.8" rx="2"/>
+                <line x1="3" y1="25" x2="77" y2="25" stroke="#38bdf8" stroke-width="2"/>
+              </g>
+
+              <!-- Pump -->
+              <g transform="translate(580, 280)">
+                <circle cx="30" cy="30" r="24" fill="#1e293b" stroke="#0284c7" stroke-width="2"/>
+                <path d="M 30 14 L 30 46 M 14 30 L 46 30" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+                <rect x="0" y="48" width="60" height="12" fill="#334155" rx="2"/>
+              </g>
+
+              <!-- Hydrocyclone Cluster -->
+              <g transform="translate(710, 110)">
+                <g transform="translate(0,0)">
+                  <rect x="10" y="20" width="24" height="30" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+                  <polygon points="10,50 34,50 22,90" fill="#1e293b" stroke="#94a3b8" stroke-width="1.5"/>
+                  <rect x="18" y="0" width="8" height="20" fill="#64748b"/>
+                </g>
+                <g transform="translate(26,0)">
+                  <rect x="10" y="20" width="24" height="30" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+                  <polygon points="10,50 34,50 22,90" fill="#1e293b" stroke="#94a3b8" stroke-width="1.5"/>
+                  <rect x="18" y="0" width="8" height="20" fill="#64748b"/>
+                </g>
+                <g transform="translate(52,0)">
+                  <rect x="10" y="20" width="24" height="30" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+                  <polygon points="10,50 34,50 22,90" fill="#1e293b" stroke="#94a3b8" stroke-width="1.5"/>
+                  <rect x="18" y="0" width="8" height="20" fill="#64748b"/>
+                </g>
+                <rect x="5" y="15" width="76" height="8" fill="#475569" rx="2"/>
+              </g>
+            </svg>
+
+            <!-- OVERLAY CARDS -->
+            <div class="pfd-card top-8 left-4">
+              <span class="pfd-card-title text-amber-400">ALIMENTACIÓN FRESCA</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Sólidos: <b id="card-feed-solids" class="text-slate-100">100.0</b> t/h</div>
+                <div>F80: <span id="card-feed-f80">10000</span> µm • Wi: <span id="card-feed-wi">14.0</span> kWh/t</div>
+              </div>
+            </div>
+            <div class="pfd-card top-8 left-[240px]">
+              <span class="pfd-card-title text-cyan-400">MOLINO DE BOLAS</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Potencia: <b id="card-mill-power" class="text-amber-400">1685</b> kW</div>
+                <div>% sólidos: <span id="card-mill-ww">73.0</span>% (SP <span id="card-mill-sp">70.0</span>%)</div>
+                <div class="text-cyan-300 text-[10px]">Agua: <span id="card-mill-water">60.0</span> m³/h</div>
+              </div>
+            </div>
+            <div class="pfd-card bottom-10 left-[430px]">
+              <span class="pfd-card-title text-blue-400">ESTADO DEL SUMP</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Nivel: <b id="card-sump-level" class="text-cyan-400">55.0</b>%</div>
+                <div>Volumen: <span id="card-sump-vol">88.0</span> m³</div>
+              </div>
+            </div>
+            <div class="pfd-card top-8 left-[545px]">
+              <span class="pfd-card-title text-cyan-400">BOMBA DE PULPA</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Velocidad: <b id="card-pump-speed" class="text-emerald-400">91</b>%</div>
+                <div>Caudal: <span id="card-pump-flow">326</span> m³/h</div>
+              </div>
+            </div>
+            <div class="pfd-card top-8 right-48">
+              <span class="pfd-card-title text-purple-400">FEED CICLONES</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Sólidos: <b id="card-cycfeed-solids">413.7</b> t/h</div>
+                <div>% sól: <span id="card-cycfeed-ww">68.5</span>% P80: <span id="card-cycfeed-p80">1177</span> µm</div>
+              </div>
+            </div>
+            <div class="pfd-card top-8 right-2">
+              <span class="pfd-card-title text-emerald-400">OVERFLOW — PRODUCTO</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Sólidos: <b id="card-of-solids" class="text-emerald-400">100.0</b> t/h</div>
+                <div>P80: <b id="card-of-p80" class="text-emerald-400">113.3</b> µm</div>
+              </div>
+            </div>
+            <div class="pfd-card bottom-2 left-[200px]">
+              <span class="pfd-card-title text-orange-400">UNDERFLOW — RECIRCULACIÓN</span>
+              <div class="text-[11px] font-mono mt-1 space-y-0.5 text-slate-300">
+                <div>Sólidos: <b id="card-uf-solids" class="text-orange-400">313.7</b> t/h</div>
+                <div>P80: <span id="card-uf-p80">1665</span> µm</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: GRANULOMETRÍA ───────────────────────────── -->
+        <div id="view-psd" class="tab-view w-full h-full p-4 overflow-auto flex-col gap-4">
+          <!-- Chart -->
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex-shrink-0">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-sm font-bold text-slate-200">DISTRIBUCIÓN GRANULOMÉTRICA (% Pasante Acumulado)</h2>
+                <p class="text-xs text-slate-400">Curvas de Tromp real por clase — PBM Austin integrado en tiempo real</p>
+              </div>
+            </div>
+            <div class="h-56 w-full relative">
+              <canvas id="chart-psd"></canvas>
+            </div>
+          </div>
+
+          <!-- P80 Summary Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 flex-shrink-0">
+            <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
+              <span class="text-[10px] text-slate-400 uppercase font-semibold">P80 Alimentación</span>
+              <div id="psd-p80-feed" class="text-lg font-bold font-mono text-cyan-400 mt-0.5">10000 µm</div>
+            </div>
+            <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
+              <span class="text-[10px] text-slate-400 uppercase font-semibold">P80 Molino</span>
+              <div id="psd-p80-mill" class="text-lg font-bold font-mono text-slate-300 mt-0.5">-- µm</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">%sól: <span id="psd-ww-mill" class="text-slate-400">--</span> ρ: <span id="psd-rho-mill" class="text-slate-400">--</span></div>
+            </div>
+            <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
+              <span class="text-[10px] text-slate-400 uppercase font-semibold">P80 Underflow</span>
+              <div id="psd-p80-uf" class="text-lg font-bold font-mono text-orange-400 mt-0.5">-- µm</div>
+            </div>
+            <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800 border-emerald-900/40">
+              <span class="text-[10px] text-emerald-400 uppercase font-semibold">P80 Overflow ★</span>
+              <div id="psd-p80-of" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">-- µm</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">%sól: <span id="psd-ww-of" class="text-slate-400">--</span> ρ: <span id="psd-rho-of" class="text-slate-400">--</span></div>
+            </div>
+          </div>
+
+          <!-- Mesh Table -->
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden text-xs font-mono flex-1 overflow-auto">
+            <div class="p-3 bg-slate-950 border-b border-slate-800 font-sans">
+              <span class="font-bold text-slate-300">Tabla de Mallas y Análisis Granulométrico (20 Clases — PBM Real)</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="bg-slate-900 text-slate-400 text-[11px] border-b border-slate-800 uppercase sticky top-0">
+                  <tr>
+                    <th class="p-2.5">Tamaño</th>
+                    <th class="p-2.5">Alim. Ret [%]</th>
+                    <th class="p-2.5 text-cyan-400">Alim. Pas [%]</th>
+                    <th class="p-2.5">Molino Pas [%]</th>
+                    <th class="p-2.5 text-orange-400">U/F Pas [%]</th>
+                    <th class="p-2.5 text-emerald-400">O/F Pas [%]</th>
+                  </tr>
+                </thead>
+                <tbody id="mesh-table-body" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: TENDENCIAS 8 PANELES ───────────────────── -->
+        <div id="view-trends" class="tab-view w-full h-full p-3 overflow-auto">
+          <div class="trends-grid" style="height: calc(100% - 0.5rem);">
+
+            <!-- Panel 1: P80 -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#22c55e">📈 P80 Granulometría (µm)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-p80"></canvas></div>
+            </div>
+
+            <!-- Panel 2: Solid Flows -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#38bdf8">⚖️ Flujos de Sólidos (t/h)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-flows"></canvas></div>
+            </div>
+
+            <!-- Panel 3: Circulating Load -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#f97316">🔄 Carga Circulante (%)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-cl"></canvas></div>
+            </div>
+
+            <!-- Panel 4: Mill Inventory -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#60a5fa">🏭 Inventario Molino (t)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-inventory"></canvas></div>
+            </div>
+
+            <!-- Panel 5: Power -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#f59e0b">⚡ Potencia Molino (kW)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-power"></canvas></div>
+            </div>
+
+            <!-- Panel 6: Sump Level -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#38bdf8">🌊 Nivel del Sump (%)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-sump"></canvas></div>
+            </div>
+
+            <!-- Panel 7: Pulp Density -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#a78bfa">🧪 Condición Pulpa Ciclones</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-pulp"></canvas></div>
+            </div>
+
+            <!-- Panel 8: Water Balance -->
+            <div class="trend-panel">
+              <div class="trend-panel-title" style="color:#06b6d4">💧 Balance de Agua (m³/h)</div>
+              <div class="trend-canvas-wrap"><canvas id="trend-water"></canvas></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- VIEW 4: ALARMAS ─────────────────────────────────── -->
+        <div id="view-alarms" class="tab-view w-full h-full p-4 overflow-auto flex-col gap-4">
+          <!-- Active Alarms Panel -->
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex-shrink-0">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                <span class="text-base">🚨</span> Alarmas Activas
+              </h2>
+              <button id="btn-clear-alarm-log" class="text-[10px] text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-400/50 px-2 py-1 rounded transition">Limpiar Log</button>
+            </div>
+            <div id="active-alarms-list" class="text-emerald-400 text-xs font-mono py-2">✓ Sin alarmas activas</div>
+          </div>
+
+          <!-- Event Log Table -->
+          <div class="bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden flex-1">
+            <div class="p-3 bg-slate-950 border-b border-slate-800 font-sans">
+              <span class="font-bold text-slate-300 text-sm">Registro de Eventos</span>
+              <span class="text-slate-500 text-xs ml-2">— con timestamps de simulación</span>
+            </div>
+            <div class="overflow-x-auto h-full overflow-y-auto custom-scrollbar">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-900 text-slate-400 uppercase tracking-wide border-b border-slate-800 sticky top-0">
+                  <tr>
+                    <th class="p-2.5">Tiempo</th>
+                    <th class="p-2.5">Equipo</th>
+                    <th class="p-2.5">Mensaje</th>
+                    <th class="p-2.5 text-center">Severidad</th>
+                  </tr>
+                </thead>
+                <tbody id="alarm-log-body" class="divide-y divide-slate-800/40 font-mono">
+                  <tr><td colspan="4" class="p-4 text-center text-slate-500">Sin eventos registrados</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 5: CASOS ───────────────────────────────────── -->
+        <div id="view-cases" class="tab-view w-full h-full p-4 overflow-auto gap-6">
+          <!-- Save / Load Panel -->
+          <div class="flex flex-col gap-4 w-80 shrink-0">
+            <!-- Save -->
+            <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
+              <h3 class="font-semibold text-slate-200 text-sm mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                Guardar Caso Actual
+              </h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="text-xs text-slate-400 block mb-1">Nombre del caso:</label>
+                  <input type="text" id="inp-case-name" value="Caso_Principal" placeholder="Nombre del caso..." class="w-full bg-slate-950 border border-slate-700/80 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
+                </div>
+                <button id="btn-save-case" class="w-full bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400/50 rounded-lg py-2 text-sm font-semibold transition">
+                  💾 Guardar en Navegador
+                </button>
+                <button id="btn-export-xlsx" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/50 rounded-lg py-2 text-sm font-semibold transition">
+                  📊 Exportar Excel (.xlsx)
+                </button>
+              </div>
+            </div>
+
+            <!-- Export info -->
+            <div class="bg-slate-900/40 rounded-xl border border-slate-800/60 p-4">
+              <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Formato de Exportación Excel</h4>
+              <ul class="space-y-1.5 text-xs text-slate-400">
+                <li class="flex items-center gap-2"><span class="w-5 h-5 rounded bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300">1</span> Parámetros del caso</li>
+                <li class="flex items-center gap-2"><span class="w-5 h-5 rounded bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300">2</span> Análisis granulométrico</li>
+                <li class="flex items-center gap-2"><span class="w-5 h-5 rounded bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300">3</span> Balance de masa por corriente</li>
+                <li class="flex items-center gap-2"><span class="w-5 h-5 rounded bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300">4</span> Historial de tendencias</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Cases list -->
+          <div class="flex-1 min-w-0">
+            <div class="bg-slate-900/60 rounded-xl border border-slate-800 h-full">
+              <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-200 text-sm">Casos Guardados</h3>
+                <span class="text-[10px] text-slate-500">Almacenados en localStorage del navegador</span>
+              </div>
+              <div id="case-list" class="p-4 space-y-2 overflow-y-auto custom-scrollbar" style="max-height: calc(100% - 60px);">
+                <p class="text-slate-500 text-xs text-center py-4">No hay casos guardados</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 6: MODELO MATEMÁTICO ──────────────────────── -->
+        <div id="view-math" class="tab-view w-full h-full p-6 overflow-auto text-slate-300 max-w-4xl mx-auto">
+          <h2 class="text-lg font-bold text-cyan-400 border-b border-slate-800 pb-2 mb-4">Base Matemática — MetSim Studio v2.0</h2>
+          <div class="space-y-4 text-xs leading-relaxed">
+
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-amber-500/20">
+              <h3 class="font-semibold text-amber-400 text-sm mb-2">1. Balance de Población (PBM) — Austin Model</h3>
+              <p class="mb-2">El molino resuelve 20 clases de partículas simultáneamente. La ODE de rotura por clase es:</p>
+              <div class="bg-slate-950 p-3 rounded font-mono text-cyan-300 text-[11px] mb-2">dm_i/dt = −S_i · m_i + Σⱼ₌₁ⁱ⁻¹ B_ij · S_j · m_j</div>
+              <p class="mb-1"><strong class="text-slate-200">Selección:</strong> S_i = α · (d_i / d_ref)^μ · f(P/P_max)</p>
+              <p><strong class="text-slate-200">Distribución:</strong> B_ij = φ·(d_i/d_j)^γ + (1−φ)·(d_i/d_j)^β</p>
+            </div>
+
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-emerald-500/20">
+              <h3 class="font-semibold text-emerald-400 text-sm mb-2">2. Ciclón — Curva de Tromp Real por Clase</h3>
+              <p class="mb-2">Cada clase de partícula tiene su propia fracción al underflow según la curva de Tromp:</p>
+              <div class="bg-slate-950 p-3 rounded font-mono text-cyan-300 text-[11px] mb-2">Y_i = Ra + (1−Ra) / (1 + (d₅₀c/dᵢ)^α)</div>
+              <p>Donde <strong>Ra</strong> = bypass/100, <strong>α</strong> = 1/imperfección. Agua al U/F: Rf ≈ bypass/100 · 1.2.</p>
+            </div>
+
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-blue-500/20">
+              <h3 class="font-semibold text-blue-400 text-sm mb-2">3. Control PID del Sump (con Anti-Windup)</h3>
+              <div class="bg-slate-950 p-3 rounded font-mono text-cyan-300 text-[11px] mb-2">v(t) = Kp·e(t) + Ki·∫e(t)dt + Kd·(de/dt) + v₀<br/>integral = clamp(integral, −60, +60)  ← anti-windup</div>
+              <p>Elimina el offset estacionario (componente integral) y anticipa oscilaciones (derivativa).</p>
+            </div>
+
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-purple-500/20">
+              <h3 class="font-semibold text-purple-400 text-sm mb-2">4. Balance de Agua y Densidad de Pulpa</h3>
+              <div class="bg-slate-950 p-3 rounded font-mono text-cyan-300 text-[11px] mb-2">ρ_pulpa = (Qsólidos + Qagua) / (Qsólidos/ρ_mineral + Qagua)<br/>%w/w = Qsólidos / (Qsólidos + Qagua) × 100</div>
+              <p>Calculado para cada corriente: alimentación, descarga molino, sump, overflow, underflow.</p>
+              <p class="mt-2 text-slate-400">Residual global: <code class="text-cyan-300">Δsól = Feed − Overflow ≈ 0</code></p>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- end tab views -->
+    </main>
+
+    <!-- ── Right Telemetry Panel ──────────────────────────────── -->
+    <aside class="w-56 bg-slate-900/90 border-l border-slate-800/80 flex flex-col shrink-0 overflow-y-auto select-none font-mono text-xs custom-scrollbar">
+      <div class="p-3 border-b border-slate-800 bg-slate-950/60 shrink-0">
+        <span class="font-bold text-slate-300 font-sans uppercase tracking-wider text-[11px] block">TELEMETRÍA v2.0</span>
+        <span id="telemetry-status" class="text-emerald-400 font-semibold text-[11px] block mt-0.5">Preparado</span>
+      </div>
+
+      <div class="p-3 space-y-1.5 text-[11px] flex-1">
+
+        <!-- Simulation -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-1 pb-0.5 border-b border-slate-800/60">Simulación</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Tiempo sim.</span><span id="tel-time" class="text-slate-100 font-bold">0.000 min</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">PID integral</span><span id="tel-pid-integral" class="text-slate-300">0.000</span></div>
+
+        <!-- Mill -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Molino</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Inventario</span><span id="tel-mill-inv" class="text-slate-200">85.00 t</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Pot. util.</span><span id="tel-power-util" class="text-slate-200">76.6 %</span></div>
+
+        <!-- Sólidos -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Sólidos (t/h)</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Feed fresco</span><span id="tel-feed-solids" class="text-slate-200">100.00</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Feed molino</span><span id="tel-mill-feed-solids" class="text-slate-200">413.70</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Underflow</span><span id="tel-uf-solids" class="text-orange-400">313.70</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Overflow</span><span id="tel-of-solids" class="text-emerald-400 font-bold">100.00</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Split U/F</span><span id="tel-split-uf" class="text-slate-200">75.83 %</span></div>
+
+        <!-- Granulometría -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Granulometría</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">P80 Overflow</span><span id="tel-p80-of" class="text-emerald-400">-- µm</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">E específica</span><span id="tel-energy" class="text-cyan-400">-- kWh/t</span></div>
+
+        <!-- Sump / Bomba -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Sump / Bomba</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Nivel sump</span><span id="tel-sump-level" class="text-blue-400">55.00 %</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Caudal bomba</span><span id="tel-pump-flow" class="text-slate-200">326.26</span></div>
+
+        <!-- Agua -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Agua (m³/h)</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Agua O/F</span><span id="tel-of-water" class="text-cyan-300">--</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Agua U/F</span><span id="tel-uf-water" class="text-cyan-300">--</span></div>
+
+        <!-- Densidades -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Densidad Pulpa</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">ρ Overflow</span><span id="tel-of-rho" class="text-slate-300">--</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">ρ Underflow</span><span id="tel-uf-rho" class="text-slate-300">--</span></div>
+
+        <!-- Balance -->
+        <div class="text-[9px] font-sans text-slate-500 uppercase tracking-wide pt-2 pb-0.5 border-b border-slate-800/60">Balance Global</div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Δ Sólidos</span><span id="tel-residual-solids" class="text-emerald-400">-- t/h</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-slate-400 font-sans">Δ Agua</span><span id="tel-residual-water" class="text-slate-400">-- m³/h</span></div>
+
+      </div>
+    </aside>
+
+  </div><!-- end workspace -->
+
+  <!-- ══ QUICK STATE BAR ══════════════════════════════════════ -->
+  <div id="quick-state-bar" class="qsb-normal">
+    <span id="qsb-icon">🟢</span>
+    <span id="qsb-text">SIN RESOLVER — Inicie la simulación para ver el estado del proceso</span>
+  </div>
+
+</div><!-- end app -->
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

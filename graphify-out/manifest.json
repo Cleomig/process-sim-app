@@ -1,0 +1,50 @@
+{
+  "opencode.json": {
+    "mtime": 1789677035.4265893,
+    "seen": 1789679005.3829083,
+    "ast_hash": "73e77b490fe9c8f4a3fa466bada45a0c",
+    "semantic_hash": "73e77b490fe9c8f4a3fa466bada45a0c"
+  },
+  "package.json": {
+    "mtime": 1789658662.3421247,
+    "seen": 1789679005.382915,
+    "ast_hash": "c3c4455ccb66f172d7cb34f839370576",
+    "semantic_hash": "c3c4455ccb66f172d7cb34f839370576"
+  },
+  "src/alarmSystem.js": {
+    "mtime": 1789660588.3640685,
+    "seen": 1789679005.382918,
+    "ast_hash": "9a2377d80b92b7ba54acd1e63235d057",
+    "semantic_hash": "9a2377d80b92b7ba54acd1e63235d057"
+  },
+  "src/caseManager.js": {
+    "mtime": 1789660590.4304712,
+    "seen": 1789679005.3829203,
+    "ast_hash": "855fa084ff41d001c31615b795975b7f",
+    "semantic_hash": "855fa084ff41d001c31615b795975b7f"
+  },
+  "src/chartsManager.js": {
+    "mtime": 1789660642.3368545,
+    "seen": 1789679005.3829222,
+    "ast_hash": "dce21c30051de8a828148d49778bf12e",
+    "semantic_hash": "dce21c30051de8a828148d49778bf12e"
+  },
+  "src/counter.js": {
+    "mtime": 1789658618.2421174,
+    "seen": 1789679005.382924,
+    "ast_hash": "e912f4cce4554f6e6f95dd1029347f06",
+    "semantic_hash": "e912f4cce4554f6e6f95dd1029347f06"
+  },
+  "src/main.js": {
+    "mtime": 1789660743.0600543,
+    "seen": 1789679005.382926,
+    "ast_hash": "f69e49ef567890c954b5e17727a062f0",
+    "semantic_hash": "f69e49ef567890c954b5e17727a062f0"
+  },
+  "src/simulationEngine.js": {
+    "mtime": 1789660523.3653164,
+    "seen": 1789679005.382928,
+    "ast_hash": "e0b6dbb12e1efde25cd8d82d514b364d",
+    "semantic_hash": "e0b6dbb12e1efde25cd8d82d514b364d"
+  }
+}

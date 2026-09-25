@@ -1,0 +1,173 @@
+/* ============================================================
+   MetSim Studio v2.0 — Custom Styles
+   Vanilla CSS for all non-Tailwind custom components
+   ============================================================ */
+
+/* ── Scrollbars ────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(15,23,42,0.6); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── Form Inputs ───────────────────────────────────────────── */
+.inp-num {
+  width: 5rem;
+  background-color: #0f172a;
+  border: 1px solid rgba(51,65,85,0.8);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  color: #f8fafc;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.inp-num:focus { border-color: #06b6d4; box-shadow: 0 0 0 1px rgba(6,182,212,0.2); }
+
+.inp-select {
+  background-color: #0f172a;
+  border: 1px solid rgba(51,65,85,0.8);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  color: #f8fafc;
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.inp-select:focus { border-color: #06b6d4; }
+
+/* ── KPI Cards ─────────────────────────────────────────────── */
+.kpi-card {
+  background-color: rgba(15,23,42,0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(51,65,85,0.8);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.kpi-card:hover { border-color: #475569; transform: translateY(-1px); }
+
+/* ── Navigation Tabs ───────────────────────────────────────── */
+.nav-tab {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem; font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  cursor: pointer; background: none; white-space: nowrap;
+}
+.nav-tab:hover { color: #e2e8f0; }
+.nav-tab.active { color: #38bdf8; border-color: #38bdf8; background-color: rgba(56,189,248,0.05); }
+
+/* ── Tab Views ─────────────────────────────────────────────── */
+.tab-view { display: none; }
+.tab-view.active { display: flex; }
+
+/* ── PFD Data Cards ────────────────────────────────────────── */
+.pfd-card {
+  position: absolute;
+  background: rgba(15,23,42,0.90);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(51,65,85,0.8);
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.pfd-card:hover { border-color: #38bdf8; transform: translateY(-2px); box-shadow: 0 12px 30px -5px rgba(56,189,248,0.2); }
+.pfd-card-title { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* ── SVG Flow Lines ────────────────────────────────────────── */
+.flow-line { fill: none; stroke-width: 3.5; stroke-dasharray: 8,4; animation: dash 1s linear infinite; }
+.pulp-line   { stroke: #38bdf8; filter: drop-shadow(0 0 3px rgba(56,189,248,0.6)); }
+.water-line  { stroke: #06b6d4; filter: drop-shadow(0 0 3px rgba(6,182,212,0.6)); }
+.recirc-line { stroke: #f97316; filter: drop-shadow(0 0 3px rgba(249,115,22,0.6)); }
+
+@keyframes dash { to { stroke-dashoffset: -12; } }
+
+.mill-dots { animation: rotateMill 3s linear infinite; transform-origin: 80px 45px; }
+@keyframes rotateMill { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── Quick State Bar ───────────────────────────────────────── */
+#quick-state-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(51,65,85,0.6);
+  transition: background-color 0.4s, border-color 0.4s;
+  z-index: 40;
+  height: 2rem;
+  flex-shrink: 0;
+}
+.qsb-normal { background: rgba(15,23,42,0.9); color: #94a3b8; border-color: rgba(51,65,85,0.6); }
+.qsb-warn   { background: rgba(78,60,0,0.6);  color: #fbbf24; border-color: rgba(245,158,11,0.5); }
+.qsb-alarm  { background: rgba(80,10,10,0.7); color: #f87171; border-color: rgba(239,68,68,0.5); animation: pulseBar 1s ease-in-out infinite alternate; }
+
+@keyframes pulseBar {
+  from { background: rgba(80,10,10,0.65); }
+  to   { background: rgba(80,10,10,0.90); }
+}
+
+/* ── Alarm Log Rows ────────────────────────────────────────── */
+.alarm-row-alarm { background: rgba(239,68,68,0.07); }
+.alarm-row-alarm td { color: #fca5a5; }
+.alarm-row-warn  { background: rgba(245,158,11,0.07); }
+.alarm-row-warn td { color: #fcd34d; }
+.alarm-row-info td { color: #94a3b8; }
+
+/* ── Trend Grid ─────────────────────────────────────────────  */
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.trend-panel {
+  background: rgba(15,23,42,0.6);
+  border: 1px solid rgba(51,65,85,0.7);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: border-color 0.2s;
+}
+.trend-panel:hover { border-color: #475569; }
+
+.trend-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+  flex-shrink: 0;
+}
+.trend-canvas-wrap { flex: 1; min-height: 0; position: relative; }
+
+/* ── Active Alarm pill ─────────────────────────────────────── */
+@keyframes pulse-alarm-pill {
+  0%, 100% { opacity: 1; }
+  50%  { opacity: 0.6; }
+}
+.alarm-active-pill { animation: pulse-alarm-pill 1.4s ease-in-out infinite; }
+
+/* ── Water balance residual color ──────────────────────────── */
+.residual-ok   { color: #34d399; }
+.residual-warn { color: #f59e0b; }
+.residual-bad  { color: #ef4444; font-weight: 700; }
